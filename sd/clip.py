@@ -9,7 +9,7 @@ class CLIPEmbedding(nn.Module):
         super().__init__()
 
         self.token_embedding = nn.Embedding(n_vocab, n_embed)
-        self.positional_embedding = nn.Parameter(torch.zeros(n_tokens, n_embed))
+        self.position_embedding = nn.Parameter(torch.zeros(n_tokens, n_embed))
 
     def forward(self, tokens: torch.Tensor) -> torch.Tensor:
         # (B, Seq_len) -> (B, Seq_len, Dim)
@@ -52,7 +52,7 @@ class CLIP(nn.Module):
         
         self.embedding = CLIPEmbedding(49408, 768, 77)
 
-        self.layers = nn.Module([
+        self.layers = nn.ModuleList([
             CLIPLayer(12, 768) for _ in range(12)
         ])
 

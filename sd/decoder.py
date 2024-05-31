@@ -34,19 +34,12 @@ class VAE_AttentionBlock(nn.Module):
 class VAE_ResidualBlock(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
-        self.seq = nn.Sequential(
-            nn.GroupNorm(32, in_channels),
-            nn.SiLU(),
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
-            nn.GroupNorm(32, out_channels),
-            nn.SiLU(),
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1),
-        )
 
-        # self.groupnorm_1 = nn.GroupNorm(32, in_channels)
-        # self.conv_1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1)
-        # self.groupnorm_2 = nn.GroupNorm(32, out_channels)
-        # self.conv_2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1)
+        self.groupnorm_1 = nn.GroupNorm(32, in_channels)
+        self.conv_1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1)
+        self.groupnorm_2 = nn.GroupNorm(32, out_channels)
+        self.conv_2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1)
+
         if in_channels == out_channels:
             self.residual_layer = nn.Identity()
         else:
@@ -55,13 +48,12 @@ class VAE_ResidualBlock(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # x: (B, in_channels, H, W)
         residue = x
-        # x = self.groupnorm_1(x)
-        # x = F.silu(x)
-        # x = self.conv_1(x)
-        # x = self.groupnorm_2(x)
-        # x = F.silu(x)
-        # x = self.conv_2(x)
-        x = self.seq(x)
+        x = self.groupnorm_1(x)
+        x = F.silu(x)
+        x = self.conv_1(x)
+        x = self.groupnorm_2(x)
+        x = F.silu(x)
+        x = self.conv_2(x)
         x = x + self.residual_layer(residue)
         return x
     
@@ -74,7 +66,6 @@ class VAE_Decoder(nn.Sequential):
             nn.Conv2d(4, 512, kernel_size=3, padding=1),
             VAE_ResidualBlock(512, 512),
             VAE_AttentionBlock(512),
-            VAE_ResidualBlock(512, 512),
             VAE_ResidualBlock(512, 512),
             VAE_ResidualBlock(512, 512),
             VAE_ResidualBlock(512, 512),

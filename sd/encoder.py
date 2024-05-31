@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from torch.nn import functional as F
-from decoder import VAC_AttentionBlock, VAE_ResidualBlock
+from decoder import VAE_AttentionBlock, VAE_ResidualBlock
 
 class VAE_Encoder(nn.Sequential):
     def __init__(self, in_channels=3, out_channels=8):
@@ -33,7 +33,7 @@ class VAE_Encoder(nn.Sequential):
             # (B, 512, H/8, W/8) -> (B, 512, H/8, W/8)
             VAE_ResidualBlock(512, 512),
             # (B, 512, H/8, W/8) -> (B, 512, H/8, W/8)
-            VAC_AttentionBlock(512),
+            VAE_AttentionBlock(512),
             # (B, 512, H/8, W/8) -> (B, 512, H/8, W/8)
             VAE_ResidualBlock(512, 512),
             # (B, 512, H/8, W/8) -> (B, 512, H/8, W/8)
