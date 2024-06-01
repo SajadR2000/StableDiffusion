@@ -14,7 +14,7 @@ class CLIPEmbedding(nn.Module):
     def forward(self, tokens: torch.Tensor) -> torch.Tensor:
         # (B, Seq_len) -> (B, Seq_len, Dim)
         x = self.token_embedding(tokens)
-        x += self.positional_embedding
+        x += self.position_embedding
         return x
 
 

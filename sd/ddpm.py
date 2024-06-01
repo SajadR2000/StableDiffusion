@@ -87,6 +87,6 @@ class DDPMSampler:
         while len(sqrt_one_minus_alpha_prod.shape) < len(original_samples.shape):
             sqrt_one_minus_alpha_prod = sqrt_one_minus_alpha_prod.unsqueeze(-1)
 
-        noise = torch.randn_like(original_samples, generator=self.generator)
+        noise = torch.randn(original_samples.shape, generator=self.generator, device=original_samples.device, dtype=original_samples.dtype)
 
         return sqrt_alpha_prod * original_samples + sqrt_one_minus_alpha_prod * noise

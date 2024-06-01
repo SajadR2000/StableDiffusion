@@ -22,7 +22,7 @@ def generate(prompt: str, uncond_prompt: str, input_image=None, strength=0.8, do
             raise ValueError('Strength must be between 0 and 1')
 
         if idle_device:
-            to_idle: lambda x: x.to(idle_device)
+            to_idle = lambda x: x.to(idle_device)
         else:
             to_idle = lambda x: x
         
@@ -63,7 +63,7 @@ def generate(prompt: str, uncond_prompt: str, input_image=None, strength=0.8, do
 
         if sampler_name == 'ddpm':
             sampler = DDPMSampler(generator)
-            sampler.set_inference_steps(n_inference_steps)
+            sampler.set_inference_timesteps(n_inference_steps)
 
         else:
             raise ValueError(f'Unknown sampler: {sampler_name}')
@@ -74,9 +74,9 @@ def generate(prompt: str, uncond_prompt: str, input_image=None, strength=0.8, do
             encoder = models['encoder']
             encoder.to(device)
 
-            input_image_tensor = input_image.reseize((WIDTH, HEIGHT))
+            input_image_tensor = input_image.resize((WIDTH, HEIGHT))
             input_image_tensor = np.array(input_image_tensor)
-            input_image_tensor = torch.tensor(input_image_tensor, dtype=torch.float32)
+            input_image_tensor = torch.tensor(input_image_tensor, dtype=torch.float32, device=device)
             input_image_tensor = rescale(input_image_tensor, (0, 255), (-1, 1))
             input_image_tensor = input_image_tensor.unsqueeze(0)
             input_image_tensor = input_image_tensor.permute(0, 3, 1, 2)
@@ -102,7 +102,7 @@ def generate(prompt: str, uncond_prompt: str, input_image=None, strength=0.8, do
             model_input = latents
 
             if do_cfg:
-                model_input = model_input.reshape(2, 1, 1, 1)
+                model_input = model_input.repeat(2, 1, 1, 1)
             
             model_output = diffusion(model_input, context, time_embedding)
 
@@ -139,5 +139,5 @@ def rescale(x, src_range, dst_range, clamp=False):
 
 def get_time_embedding(t):
     freq = torch.pow(10000, -torch.arange(start=0, end=160, dtype=torch.float32) / 160)
-    x = torch.tensor(t, dtype=torch.float32)[:, None] * freq
+    x = torch.tensor([t], dtype=torch.float32)[:, None] * freq[None]
     return torch.cat([torch.cos(x), torch.sin(x)], dim=-1)

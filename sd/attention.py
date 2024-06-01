@@ -62,7 +62,7 @@ class CrossAttention(nn.Module):
         input_shape = x.shape
         batch_size, seq_len, embed_dim = input_shape
 
-        interim_shape = (batch_size, seq_len, self.n_heads, self.d_head)
+        interim_shape = (batch_size, -1, self.n_heads, self.d_head)
 
         q = self.q_proj(x)
         k = self.k_proj(y)
