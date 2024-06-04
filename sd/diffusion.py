@@ -9,7 +9,7 @@ class TimeEmbedding(nn.Module):
         super().__init__()
         self.linear_1 = nn.Linear(dim, 4 * dim)
         self.linear_2 = nn.Linear(4 * dim, 4 * dim)
-    
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # (1, 320) -> (1, 1280)
         x = self.linear_1(x)
@@ -30,7 +30,7 @@ class UNET_ResidualBlock(nn.Module):
             self.residual_layer = nn.Identity()
         else:
             self.residual_layer = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0)
-    
+
     def forward(self, feature, time):
         # feature: (B, C, H, W)
         # time: (1, 1280)
@@ -65,7 +65,7 @@ class UNET_AttentionBlock(nn.Module):
         self.linear_geglu_2 = nn.Linear(4 * channels, channels)
 
         self.conv_output = nn.Conv2d(channels, channels, kernel_size=1, stride=1, padding=0)
-    
+
     def forward(self, x, context):
         # x: (B, C, H, W)
         # context: (B, Seq_len, Dim)
@@ -114,7 +114,7 @@ class Upsample(nn.Module):
         return self.conv(F.interpolate(x, scale_factor=2, mode='nearest'))
 
 class SwitchSequential(nn.Sequential):
-    
+
     def forward(self, x: torch.Tensor, context: torch.Tensor, time: torch.Tensor) -> torch.Tensor:
         for layer in self:
             if isinstance(layer, UNET_AttentionBlock):
@@ -124,7 +124,7 @@ class SwitchSequential(nn.Sequential):
             else:
                 x = layer(x)
         return x
-            
+
 
 class UNET(nn.Module):
     def __init__(self):
@@ -165,11 +165,11 @@ class UNET(nn.Module):
             SwitchSequential(UNET_ResidualBlock(640, 320), UNET_AttentionBlock(8, 40)),
             SwitchSequential(UNET_ResidualBlock(640, 320), UNET_AttentionBlock(8, 40)),
         ])
-    
+
     # The forward was not implement in Video. This is directly taken from Github
     def forward(self, x, context, time):
         # x: (Batch_Size, 4, Height / 8, Width / 8)
-        # context: (Batch_Size, Seq_Len, Dim) 
+        # context: (Batch_Size, Seq_Len, Dim)
         # time: (1, 1280)
 
         skip_connections = []
@@ -181,9 +181,9 @@ class UNET(nn.Module):
 
         for layers in self.decoders:
             # Since we always concat with the skip connection of the encoder, the number of features increases before being sent to the decoder's layer
-            x = torch.cat((x, skip_connections.pop()), dim=1) 
+            x = torch.cat((x, skip_connections.pop()), dim=1)
             x = layers(x, context, time)
-        
+
         return x
 
 
@@ -193,7 +193,7 @@ class UNET_OutputLayer(nn.Module):
         super().__init__()
         self.groupnorm = nn.GroupNorm(32, in_channels)
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1)
-    
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.groupnorm(x)
         x = F.silu(x)
@@ -208,7 +208,7 @@ class Diffusion(nn.Module):
         self.time_embedding = TimeEmbedding(320)
         self.unet = UNET()
         self.final = UNET_OutputLayer(320, 4)
-    
+
     def forward(self, latent: torch.Tensor, context: torch.Tensor, time: torch.Tensor) -> torch.Tensor:
         # latent: (B, 4, H/8, W/8)
         # context: (B, Seq_len, Dim)
