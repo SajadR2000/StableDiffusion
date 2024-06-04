@@ -12,7 +12,7 @@ class SelfAttention(nn.Module):
         self.out_proj = nn.Linear(d_embed, d_embed, bias=out_proj_bias)
         self.n_heads = n_heads
         self.d_head = d_embed // n_heads
-    
+
     def forward(self, x: torch.Tensor, causal_mask=False) -> torch.Tensor:
         # x: (B, S, C)
         input_shape = x.shape
@@ -25,13 +25,14 @@ class SelfAttention(nn.Module):
         key = key.view(interim_shape).transpose(1, 2)
         value = value.view(interim_shape).transpose(1, 2)
         # (B, H, S, Dim/H) @ (B, H, Dim/H, S) -> (B, H, S, S
-        weight = query @ key.transpose(-1, -2) / math.sqrt(self.d_head)
-        
+        weight = query @ key.transpose(-1, -2)
+
         if causal_mask:
             # (B, H, S, S) -> (B, H, S, S)
             mask = torch.ones_like(weight).triu_(diagonal=1)
-            weight = weight.masked_fill(mask == 0, float('-inf'))
-        
+            weight = weight.masked_fill(mask != 0, float('-inf'))
+
+        weight /= math.sqrt(self.d_head)
         weight = F.softmax(weight, dim=-1)
         # (B, H, S, S) @ (B, H, S, Dim/H) -> (B, H, S, Dim/H)
         output = weight @ value
@@ -40,7 +41,7 @@ class SelfAttention(nn.Module):
         output = self.out_proj(output)
 
         return output
-    
+
 
 class CrossAttention(nn.Module):
     def __init__(self, n_heads: int, d_embed: int, d_cross: int, in_proj_bias=True, out_proj_bias=True):
