@@ -14,8 +14,9 @@ class DDPMSampler:
     
     def set_inference_timesteps(self, num_inference_steps=50):
         self.num_inference_steps = num_inference_steps
-        step_ratio = self.num_inference_steps // self.num_training_steps
+        step_ratio = self.num_training_steps // self.num_inference_steps
         self.timesteps = (np.arange(0, num_inference_steps) * step_ratio).round()[::-1].copy().astype(np.int64)
+        self.timesteps = torch.from_numpy(self.timesteps)
     
     def _get_previous_timestep(self, current_timestep):
         return current_timestep - (self.num_training_steps // self.num_inference_steps)
@@ -48,12 +49,12 @@ class DDPMSampler:
         alpha_prod_t_prev = self.alphas_cumprod[prev_t] if prev_t >= 0 else self.one
         beta_prod_t = 1 - alpha_prod_t
         beta_prod_t_prev = 1 - alpha_prod_t_prev
-        current_alpha_t = alpha_prod_t // alpha_prod_t_prev
+        current_alpha_t = alpha_prod_t / alpha_prod_t_prev
         current_beta_t = 1 - current_alpha_t
 
         pred_original_sample = (latents - beta_prod_t ** 0.5 * model_output) / alpha_prod_t ** 0.5
         
-        pred_original_sample_coeff = alpha_prod_t_prev ** 0.5 * current_beta_t / beta_prod_t_prev
+        pred_original_sample_coeff = alpha_prod_t_prev ** 0.5 * current_beta_t / beta_prod_t
         current_sample_coeff = current_alpha_t ** 0.5 * beta_prod_t_prev / beta_prod_t
 
         pred_prev_sample = pred_original_sample_coeff * pred_original_sample + current_sample_coeff * latents
@@ -63,7 +64,7 @@ class DDPMSampler:
             variance = self._get_variance(t)
             noise = torch.randn(model_output.shape, generator=self.generator, device=model_output.device, dtype=model_output.dtype)
             variance = variance ** 0.5 * noise
-        
+
         pred_prev_sample = pred_prev_sample + variance
 
         return pred_prev_sample
