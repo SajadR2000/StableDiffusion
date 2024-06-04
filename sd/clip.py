@@ -30,7 +30,7 @@ class CLIPLayer(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # (B, Seq_len, Dim)
-        residual = x 
+        residual = x
 
         x = self.layernorm_1(x)
         x = self.attention(x, causal_mask=True)
@@ -49,7 +49,7 @@ class CLIPLayer(nn.Module):
 class CLIP(nn.Module):
     def __init__(self):
         super().__init__()
-        
+
         self.embedding = CLIPEmbedding(49408, 768, 77)
 
         self.layers = nn.ModuleList([
@@ -57,7 +57,7 @@ class CLIP(nn.Module):
         ])
 
         self.layernorm = nn.LayerNorm(768)
-    
+
     def forward(self, tokens: torch.Tensor) -> torch.Tensor:
         tokens = tokens.type(torch.long)
 
