@@ -56,7 +56,7 @@ class VAE_ResidualBlock(nn.Module):
         x = self.conv_2(x)
         x = x + self.residual_layer(residue)
         return x
-    
+
 
 class VAE_Decoder(nn.Sequential):
 
@@ -90,7 +90,7 @@ class VAE_Decoder(nn.Sequential):
             nn.SiLU(),
             nn.Conv2d(128, out_channels, kernel_size=3, padding=1),
         )
-    
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # x: (B, 4, H/8, W/8)
         x /= 0.18215
