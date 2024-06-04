@@ -3,11 +3,13 @@ import pipeline
 from PIL import Image
 from transformers import CLIPTokenizer
 import torch
+import matplotlib.pyplot as plt
+
 
 DEVICE = "cpu"
 
-ALLOW_CUDA = True
-ALLOW_MPS = False
+ALLOW_CUDA = False
+ALLOW_MPS = True
 
 if torch.cuda.is_available() and ALLOW_CUDA:
     DEVICE = "cuda"
@@ -19,13 +21,14 @@ tokenizer = CLIPTokenizer('../data/tokenizer_vocab.json', merges_file='../data/t
 model_file = '../data/v1-5-pruned-emaonly.ckpt'
 models = model_loader.preload_models_from_standard_weights(model_file, DEVICE)
 
-prompt = "A cat with sunglasses, realistic"
-uncond = "Red background"
+prompt = "a cat on a table"
+uncond = ""
 do_cfg = True
-cfg_scale = 7
+cfg_scale = 8
 
 # Image to Image
-input_image = Image.open("../data/cat.jpeg")
+# input_image = Image.open("../data/cat.jpeg")
+input_image = None
 strength = 0.9
 
 sampler = "ddpm"
@@ -48,6 +51,5 @@ output_image = pipeline.generate(
     tokenizer=tokenizer
 )
 
-Image.fromarray(output_image).show()
-
-
+plt.imshow(output_image)
+plt.show()
