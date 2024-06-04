@@ -25,30 +25,27 @@ def generate(prompt: str, uncond_prompt: str, input_image=None, strength=0.8, do
             to_idle = lambda x: x.to(idle_device)
         else:
             to_idle = lambda x: x
-        
+
         generator = torch.Generator(device=device)
 
         if seed is None:
             generate.seed()
         else:
             generator.manual_seed(seed)
-        
+
         clip = models['clip']
         clip.to(device)
 
         if do_cfg:
 
             cond_tokens = tokenizer.batch_encode_plus([prompt], padding="max_length", max_length=77).input_ids
-
             cond_tokens = torch.tensor(cond_tokens, dtype=torch.long, device=device)
-
             cond_context = clip(cond_tokens)
 
             uncond_tokens = tokenizer.batch_encode_plus([uncond_prompt], padding="max_length", max_length=77).input_ids
             uncond_tokens = torch.tensor(uncond_tokens, dtype=torch.long, device=device)
-
             uncond_context = clip(uncond_tokens)
-
+            
             context = torch.cat([cond_context, uncond_context])
 
         else:
@@ -58,7 +55,7 @@ def generate(prompt: str, uncond_prompt: str, input_image=None, strength=0.8, do
             tokens = torch.tensor(tokens, dtype=torch.long, device=device)
 
             context = clip(tokens)
-        
+
         to_idle(clip)
 
         if sampler_name == 'ddpm':
@@ -82,16 +79,15 @@ def generate(prompt: str, uncond_prompt: str, input_image=None, strength=0.8, do
             input_image_tensor = input_image_tensor.permute(0, 3, 1, 2)
             encoder_noise = torch.randn(latents_shape, generator=generator, device=device)
             latents = encoder(input_image_tensor, encoder_noise)
-            
+
             sampler.set_strength(strength=strength)
 
             latents = sampler.add_noise(latents, sampler.timesteps[0])
-
             to_idle(encoder)
 
         else:
             latents = torch.randn(latents_shape, generator=generator, device=device)
-        
+
         diffusion = models['diffusion']
         diffusion.to(device)
 
@@ -99,6 +95,7 @@ def generate(prompt: str, uncond_prompt: str, input_image=None, strength=0.8, do
 
         for t in timesteps:
             time_embedding = get_time_embedding(t).to(device)
+
             model_input = latents
 
             if do_cfg:
@@ -122,10 +119,10 @@ def generate(prompt: str, uncond_prompt: str, input_image=None, strength=0.8, do
 
         to_idle(decoder)
 
-        image = rescale(image, (-1, 1), (0, 255))
+        image = rescale(image, (-1, 1), (0, 255), clamp=True)
         image = image.squeeze(0)
         image = image.permute(1, 2, 0)
-        image = image.cpu().numpy()
+        image = image.cpu().numpy().astype(np.uint8)
 
         return image
 
